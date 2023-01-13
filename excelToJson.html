@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<title>xlsx导出为json</title>
+		<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+		<script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+		<style type="text/css">
+			* {
+				margin: 0;
+				padding: 0;
+			}
+			.container {
+				margin: 20px;
+			}
+			#pre {
+				width: 100%;
+			}
+			ul {
+				padding: 0;
+				margin: 0;
+				text-align: left;
+			}
+			ul li {
+				list-style: none;
+				margin-bottom: 10px;
+			}
+			ul li label {
+				font-weight: bold;
+				font-size: 14px;
+			}
+			ul li p {
+				padding: 0;
+				margin: 0;
+				font-size: 12px;
+			}
+			#download {
+				display: none;
+			}
+
+		</style>
+	</head>
+	<body>
+
+		<div class="container">
+			<p id="tips">请上传XLSX</p>
+			<input id="fileExcel" type="file" onchange="getExcelData(this)" style="width: 320px;">
+		</div>
+		<div class="container">
+			<p id="tips">请上传JSON(将数组平铺)</p>
+			<input id="fileExcel" type="file" onchange="getJsonData(this, tile)" style="width: 320px;">
+		</div>
+		<div class="container">
+			<p id="tips">请上传JSON(将平铺对象组成数组)</p>
+			<input id="fileExcel" type="file" onchange="getJsonData(this, compose)" style="width: 320px;">
+		</div>
+		<div class="container">
+			<div class="btn-wrap" id="download">
+				<button onclick="downloadClickHandler()">下载</button>
+			</div>
+			<div id="pre">
+				<ul></ul>
+			</div>
+		</div>
+		<script>
+			var KEY_MAP = {
+				en: '英语',
+				id: '印尼语',
+				ar: '阿拉伯语',
+				es: '西班牙语',
+				ru: '俄语',
+				fr: '法语',
+				vi: '越南语',
+				pt: '葡萄牙语',
+				de: '德语',
+				it: '意大利语',
+				th: '泰语',
+				vi: '越南语',
+			}
+			var LANGKEY = 'text'
+			var outputData = {}
+
+			//读取Excel数据
+			function getExcelData(obj) {
+				console.log(obj.files[0])
+				$("#tips").html("正在读取，请稍后...");
+				$("#fileExcel").css("display", "none");
+				var reader = new FileReader();
+
+				//文件加载完成后调用
+				reader.onload = function(e) {
+					var data = e.target.result;
+					console.log(data)
+					outputData = {}
+					const workbook = XLSX.read(data, {
+						type: 'array'
+					})
+					console.log(workbook)
+					//获取json格式的Excel数据
+					// var jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {
+					// 	defval: 'null' //单元格为空时的默认值
+					// });
+					//表格存在多个 Sheet 可以使用下标获取数据
+					var jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {});
+
+					// 如果表格内存在日期，需要处理一下
+					/* for (var i = 0; i < jsonData0.length; i++) {
+						jsonData0[i]["日期"] = formatDate(jsonData0[i]["日期"]);
+					} */
+					for(var i in KEY_MAP) {
+						outputData[i] = {}
+						var num = 1
+						var arr = []
+						jsonData.forEach(val => {
+							if(val[KEY_MAP[i]]) {
+								outputData[i][LANGKEY + num] = val[KEY_MAP[i]]
+								num++
+							}
+						})
+					}
+					$('#pre ul').html(randerHtml(outputData))
+					$("#download").show()
+					
+					$("#tips").html("读取完成，请选择是否下载");
+					$("#fileExcel").css("display", "block");
+				};
+
+				//加载文件
+				reader.readAsArrayBuffer(obj.files[0]);
+			}
+
+			//下载文件
+			function download(filename, text) {
+				var pom = document.createElement('a');
+				pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+				pom.setAttribute('download', filename);
+				if (document.createEvent) {
+					var event = document.createEvent('MouseEvents');
+					event.initEvent('click', true, true);
+					pom.dispatchEvent(event);
+				} else {
+					pom.click();
+				}
+			}
+
+			//将excel日期转为字符串格式
+			var format = "-";
+			function formatDate(numb) {
+				const time = new Date((numb - 1) * 24 * 3600000 + 1)
+				time.setYear(time.getFullYear() - 70)
+				const year = time.getFullYear() + ''
+				const month = time.getMonth() + 1 + ''
+				const date = time.getDate() - 1 + ''
+				if (format && format.length === 1) {
+					return year + format + month + format + date
+				}
+				return year + (month < 10 ? '0' + month : month) + (date < 10 ? '0' + date : date)
+			}
+
+			function randerHtml(data) {
+				function randerP(list) {
+					return Object.keys(list).map(key => {
+						return `<p>${key}: ${list[key]}</p>`
+					})
+				}
+				var h = ''
+				for(var i in data) {
+					h += `<li>
+							<label>${i}</label>
+							${randerP(data[i]).join('')}
+						</li>`
+				}
+				return h
+			}
+
+			function downloadClickHandler() {
+				download("lang.json", JSON.stringify(outputData));
+				$("#tips").html("");
+				$("#fileExcel").css("display","block");
+			}
+
+			function getJsonData(obj, fn) {
+				const file = obj.files[0]
+				const __this = this
+		      	var reader = new FileReader()
+		      	reader.readAsText(file, 'UTF-8')
+		      	reader.onload = function (evt) {
+		        	var fileString = evt.target.result
+			        const jsonObj = JSON.parse(fileString)
+			        download(file.name, JSON.stringify(fn(jsonObj)))
+		      	}
+			}
+
+			function tile(obj) {
+				Object.keys(obj).forEach(key => {
+					if(obj[key] instanceof Array) {
+						obj[key].forEach((val,idx) => {
+							obj[`${key}__${idx}`] = tile(val)
+						})
+						delete obj[key]
+					}
+					if(obj[key] instanceof Object) {
+						obj[key] = tile(obj[key])
+					}
+				})
+				return obj
+			}
+
+			function compose(obj) {
+				Object.keys(obj).forEach(key => {
+					if(key.indexOf('__') > 0) {
+						const [key1, key2] = key.split('__')
+						obj[key1] ? obj[key1] : (obj[key1] = [])
+						if(obj[key1] instanceof Array) obj[key1].push(compose(obj[key]))
+						delete obj[key]
+					}else {
+						if(!(obj[key] instanceof Object)) return
+						obj[key] = compose(obj[key])
+					}
+				})
+				return obj
+			}
+
+		</script>
+	</body>
+</html>
