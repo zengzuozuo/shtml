@@ -7,46 +7,25 @@
 		<title>xlsx导出为json</title>
 		<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 		<script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-		<style type="text/css">
-			* {
-				margin: 0;
-				padding: 0;
-			}
-			.container {
-				margin: 20px;
-			}
-			#pre {
-				width: 100%;
-			}
-			ul {
-				padding: 0;
-				margin: 0;
-				text-align: left;
-			}
-			ul li {
-				list-style: none;
-				margin-bottom: 10px;
-			}
-			ul li label {
-				font-weight: bold;
-				font-size: 14px;
-			}
-			ul li p {
-				padding: 0;
-				margin: 0;
-				font-size: 12px;
-			}
-			#download {
-				display: none;
-			}
-
-		</style>
+		<link rel="stylesheet" type="text/css" href="./excelToJson.css">
 	</head>
 	<body>
-
+		<div class="config">
+			<h3>配置信息</h3>
+			<ul class="excel-config" id="excelKey">
+				<!-- <li>
+					<label>en</label>
+					<input type="text" name="en" value="英语">
+				</li> -->
+			</ul>
+			<div>
+				<label>默认Key</label>
+				<input type="text" id="defaultKey" name="defaultKey" value="text">
+			</div>
+		</div>
 		<div class="container">
 			<p id="tips">请上传XLSX</p>
-			<input id="fileExcel" type="file" onchange="getExcelData(this)" style="width: 320px;">
+			<input id="fileExcel" type="file" onchange="getExcelData(this)" onclick="this.value = ''" style="width: 320px;">
 		</div>
 		<div class="container">
 			<p id="tips">请上传JSON(将数组平铺)</p>
@@ -58,7 +37,7 @@
 		</div>
 		<div class="container">
 			<div class="btn-wrap" id="download">
-				<button onclick="downloadClickHandler()">下载</button>
+				<button onclick="downloadClickHandler()">导出以下内容</button>
 			</div>
 			<div id="pre">
 				<ul></ul>
@@ -77,11 +56,37 @@
 				de: '德语',
 				it: '意大利语',
 				th: '泰语',
-				vi: '越南语',
+				ko: '韩语'
 			}
-			var LANGKEY = 'text'
 			var outputData = {}
 
+			function pageInit() {
+				let excelKeyLiHtml = ''
+				Object.keys(KEY_MAP).forEach(key => {
+					excelKeyLiHtml += `<li>
+						<label>${key}</label>
+						<input type="text" name="${key}" value="${KEY_MAP[key]}">
+					</li>`
+				})
+				$("#excelKey").html(excelKeyLiHtml)
+			}
+			// 页面初始化
+			pageInit()
+
+			// 获取excel配置信息
+			function getExcelConfig() {
+				const excelKeyMap = {}
+				const inputs = $("#excelKey li input")
+				inputs.each((val, dom) => {
+					excelKeyMap[dom.name] = dom.value
+				})
+				const defaultKey = $("#defaultKey").val()
+				return {
+					excelKeyMap,
+					defaultKey
+				}
+			}
+			console.log(getExcelConfig())
 			//读取Excel数据
 			function getExcelData(obj) {
 				console.log(obj.files[0])
@@ -92,31 +97,35 @@
 				//文件加载完成后调用
 				reader.onload = function(e) {
 					var data = e.target.result;
-					console.log(data)
 					outputData = {}
 					const workbook = XLSX.read(data, {
 						type: 'array'
 					})
-					console.log(workbook)
 					//获取json格式的Excel数据
 					// var jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {
 					// 	defval: 'null' //单元格为空时的默认值
 					// });
 					//表格存在多个 Sheet 可以使用下标获取数据
 					var jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {});
-
+					console.log(jsonData)
 					// 如果表格内存在日期，需要处理一下
 					/* for (var i = 0; i < jsonData0.length; i++) {
 						jsonData0[i]["日期"] = formatDate(jsonData0[i]["日期"]);
 					} */
-					for(var i in KEY_MAP) {
+					const { excelKeyMap, defaultKey } = getExcelConfig()
+					for(var i in excelKeyMap) {
 						outputData[i] = {}
 						var num = 1
 						var arr = []
 						jsonData.forEach(val => {
-							if(val[KEY_MAP[i]]) {
-								outputData[i][LANGKEY + num] = val[KEY_MAP[i]]
-								num++
+							if(val[excelKeyMap[i]]) {
+								if(val.key) {
+									outputData[i][val.key] = val[excelKeyMap[i]]
+								}else {
+									outputData[i][defaultKey + num] = val[excelKeyMap[i]]
+									num++
+								}
+								
 							}
 						})
 					}

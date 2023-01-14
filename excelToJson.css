@@ -1,0 +1,71 @@
+* {
+	margin: 0;
+	padding: 0;
+	font-size: 12px;
+}
+body {
+	padding: 20px;
+}
+.container {
+	margin: 20px;
+}
+#pre {
+	width: 100%;
+}
+ul {
+	padding: 0;
+	margin: 0;
+	text-align: left;
+}
+ul li {
+	list-style: none;
+	margin-bottom: 10px;
+}
+ul li label {
+	font-weight: bold;
+	font-size: 14px;
+}
+ul li p {
+	padding: 0;
+	margin: 0;
+	font-size: 12px;
+}
+#download {
+	display: none;
+}
+
+.config {
+	padding: 20px;
+	box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
+}
+.config h3 {
+}
+.excel-config {
+	display: flex;
+	margin: 10px 0;
+	flex-wrap: wrap;
+}
+.excel-config li {
+	margin-right: 20px;
+}
+.excel-config li label {
+	display: inline-block;
+	width: 18px;
+	font-weight: 400;
+
+} 
+.config input {
+	width: 80px;
+	border: none;
+	border-radius: 4px;
+    border: 1px solid #dcdfe6;
+    box-sizing: border-box;
+    color: #606266;
+    outline: none;
+    height: 20px;
+    padding: 2px 4px;
+}
+.config input:focus {
+	border-color: #409eff;
+}
+
